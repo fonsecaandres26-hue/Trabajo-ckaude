@@ -1,0 +1,5 @@
+app/datos/
+__pycache__/
+build/
+dist/
+*.spec

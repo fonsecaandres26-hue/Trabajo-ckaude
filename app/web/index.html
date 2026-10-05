@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Control Logístico</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22%3E%3Crect width=%2224%22 height=%2224%22 rx=%225%22 fill=%22%232a78d6%22/%3E%3Cpath d=%22M4 8h10v8H4zM14 11h3l2 2v3h-5%22 fill=%22none%22 stroke=%22white%22 stroke-width=%221.8%22/%3E%3C/svg%3E">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f5f7; --surface: #ffffff; --surface-2: #f9f9f7; --line: #e1e0d9; --line-2: #c3c2b7;
+  --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --nav: #13243f; --nav-ink: #c9d3e4; --nav-act: #ffffff; --accent: #2a78d6; --accent-ink: #ffffff;
+  --seq: #2a78d6; --seq-soft: #cde2fb;
+  --good: #0ca30c; --warn: #fab219; --crit: #d03b3b; --closed: #a3a29c;
+  --good-bg: #e3f4e3; --warn-bg: #fff3d6; --crit-bg: #fbe3e3; --closed-bg: #ecece8;
+  --shadow: 0 1px 2px rgba(11,11,11,.06), 0 4px 16px rgba(11,11,11,.05);
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0d0d0d; --surface: #1a1a19; --surface-2: #222220; --line: #2c2c2a; --line-2: #383835;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --nav: #0b1424; --nav-ink: #9aa8bf; --accent: #3987e5; --seq: #3987e5; --seq-soft: #184f95;
+    --good-bg: #13301a; --warn-bg: #3a2e0c; --crit-bg: #3d1717; --closed-bg: #2a2a28;
+    --shadow: 0 1px 2px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d0d0d; --surface: #1a1a19; --surface-2: #222220; --line: #2c2c2a; --line-2: #383835;
+  --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+  --nav: #0b1424; --nav-ink: #9aa8bf; --accent: #3987e5; --seq: #3987e5; --seq-soft: #184f95;
+  --good-bg: #13301a; --warn-bg: #3a2e0c; --crit-bg: #3d1717; --closed-bg: #2a2a28;
+  --shadow: 0 1px 2px rgba(0,0,0,.4);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--ink); display: flex; overflow: hidden; }
+button, input, select, textarea { font: inherit; color: inherit; }
+a { color: var(--accent); }
+
+/* ---------- navegación */
+nav { width: 220px; flex: none; background: var(--nav); color: var(--nav-ink); display: flex; flex-direction: column; padding: 18px 12px; gap: 4px; }
+.brand { display: flex; align-items: center; gap: 10px; color: #fff; font-weight: 700; font-size: 15px; padding: 4px 8px 18px; }
+.brand-mark { width: 30px; height: 30px; border-radius: 8px; background: linear-gradient(135deg, #2a78d6, #1baf7a); display: grid; place-items: center; }
+.brand small { display: block; font-weight: 400; color: var(--nav-ink); font-size: 11px; }
+nav button { all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; font-weight: 500; }
+nav button:hover { background: rgba(255,255,255,.06); color: #fff; }
+nav button.on { background: rgba(255,255,255,.12); color: var(--nav-act); }
+nav button svg { width: 18px; height: 18px; flex: none; }
+nav .spacer { flex: 1; }
+nav .foot { font-size: 11px; padding: 8px 10px; opacity: .8; }
+
+/* ---------- contenido */
+main { flex: 1; overflow: auto; min-width: 0; }
+.top { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: 18px 28px 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.top h1 { font-size: 20px; margin: 0; flex: 1; min-width: 200px; }
+.top .sub { color: var(--muted); font-size: 12px; font-weight: 400; display: block; }
+.wrap { padding: 20px 28px 40px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); padding: 16px 18px; min-width: 0; }
+.card h3 { margin: 0 0 2px; font-size: 14px; }
+.card .hint { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+.grid { display: grid; gap: 16px; }
+.g-tiles { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.g-2 { grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); }
+.g-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.tile { padding: 14px 16px; }
+.tile .lbl { color: var(--ink-2); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.tile .val { white-space: nowrap; font-size: clamp(20px, 2.2vw, 28px); font-weight: 650; margin-top: 4px; letter-spacing: -.5px; }
+.tile .lbl i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.dot-ROJO { background: var(--crit); } .dot-VERDE { background: var(--good); } .dot-AMBAR { background: var(--warn); }
+.tile .foot { color: var(--muted); font-size: 12px; }
+.btn { border: 1px solid var(--line-2); background: var(--surface); padding: 7px 12px; border-radius: 8px; cursor: pointer; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); }
+.btn.pri { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.dan { color: var(--crit); }
+.btn.sm { padding: 4px 9px; font-size: 12px; }
+.seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: var(--surface); padding: 6px 11px; cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button.on { background: var(--accent); color: var(--accent-ink); }
+input, select, textarea { background: var(--surface); border: 1px solid var(--line-2); border-radius: 8px; padding: 7px 10px; min-width: 0; }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.filters input[type=search] { width: 260px; }
+.banner { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: var(--r); background: var(--warn-bg); border: 1px solid color-mix(in srgb, var(--warn) 50%, transparent); margin-bottom: 16px; font-size: 13px; }
+.banner.info { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+
+/* ---------- semáforo */
+.sem { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px 2px 7px; border-radius: 99px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.sem::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.sem.ROJO { background: var(--crit-bg); color: var(--crit); }
+.sem.AMBAR { background: var(--warn-bg); color: #9a6a00; }
+:root[data-theme="dark"] .sem.AMBAR { color: var(--warn); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sem.AMBAR { color: var(--warn); } }
+.sem.VERDE { background: var(--good-bg); color: #087a08; }
+:root[data-theme="dark"] .sem.VERDE { color: var(--good); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .sem.VERDE { color: var(--good); } }
+.sem.CERRADO { background: var(--closed-bg); color: var(--ink-2); }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 11.5px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; }
+.pill.ok { background: var(--good-bg); color: #087a08; border-color: transparent; }
+.pill.bad { background: var(--crit-bg); color: var(--crit); border-color: transparent; }
+.pill.est { background: var(--warn-bg); color: #8a5f00; border-color: transparent; }
+.prog { display: inline-flex; gap: 2px; }
+.prog i { width: 9px; height: 9px; border-radius: 2px; background: var(--line); }
+.prog i.d { background: var(--seq); }
+.prog i.c { background: var(--seq); outline: 2px solid var(--seq-soft); }
+
+/* ---------- tabla */
+.tbl-wrap { overflow: auto; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); max-height: calc(100vh - 210px); }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th { position: sticky; top: 0; background: var(--surface-2); text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .3px; color: var(--ink-2); font-weight: 600; padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; z-index: 1; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; vertical-align: middle; }
+tbody tr { cursor: pointer; }
+tbody tr:hover td { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+td.num, th.num { text-align: right; }
+td .main { font-weight: 600; }
+td .sub { color: var(--muted); font-size: 12px; }
+.empty { padding: 40px; text-align: center; color: var(--muted); }
+
+/* ---------- gráficos */
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; overflow: visible; }
+.chart text { fill: var(--muted); font-size: 11px; }
+.chart .lbl-ink { fill: var(--ink-2); font-size: 12px; }
+.chart .val-ink { fill: var(--ink); font-size: 11.5px; font-weight: 600; }
+.chart .grid-l { stroke: var(--line); stroke-width: 1; }
+.chart .base-l { stroke: var(--line-2); stroke-width: 1; }
+.chart .hit { fill: transparent; cursor: default; }
+.chart .hit:hover + .bar, .chart .bar:hover { opacity: .85; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-bottom: 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 3px; }
+#tip { position: fixed; pointer-events: none; z-index: 50; background: var(--surface); color: var(--ink); border: 1px solid var(--line-2); border-radius: 8px; padding: 8px 10px; font-size: 12px; box-shadow: var(--shadow); display: none; max-width: 280px; }
+#tip b { display: block; margin-bottom: 2px; }
+
+/* ---------- panel detalle */
+#drawer { position: fixed; inset: 0; display: none; z-index: 20; }
+#drawer.on { display: block; }
+#drawer .veil { position: absolute; inset: 0; background: rgba(0,0,0,.35); }
+#drawer .panel { position: absolute; right: 0; top: 0; bottom: 0; width: min(860px, 96vw); background: var(--bg); overflow: auto; box-shadow: -8px 0 30px rgba(0,0,0,.2); }
+.ph { background: var(--surface); border-bottom: 1px solid var(--line); padding: 18px 24px; position: sticky; top: 0; z-index: 2; }
+.ph h2 { margin: 0; font-size: 18px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ph .meta { color: var(--ink-2); font-size: 12.5px; margin-top: 4px; }
+.pb { padding: 18px 24px 40px; display: grid; gap: 16px; }
+.stepper { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-top: 14px; }
+.stepper div { font-size: 10.5px; color: var(--muted); text-align: center; }
+.stepper div::before { content: ""; display: block; height: 6px; border-radius: 3px; background: var(--line); margin-bottom: 5px; }
+.stepper div.d::before { background: var(--seq); }
+.stepper div.c { color: var(--ink); font-weight: 600; }
+.stepper div.c::before { background: var(--seq); box-shadow: 0 0 0 3px var(--seq-soft); }
+.kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 18px; }
+.kv div span { display: block; color: var(--muted); font-size: 11.5px; }
+.kv div b { font-weight: 550; word-break: break-word; }
+.tl { list-style: none; margin: 0; padding: 0; }
+.tl li { display: grid; grid-template-columns: 128px 14px 1fr auto; gap: 10px; align-items: start; padding: 7px 0; }
+.tl li .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--seq); margin-top: 5px; box-shadow: 0 0 0 3px var(--seq-soft); }
+.tl li.est .dot { background: var(--warn); box-shadow: 0 0 0 3px var(--warn-bg); }
+.tl li .when { color: var(--ink-2); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.tl li .what b { display: block; }
+.tl li .what span { color: var(--muted); font-size: 12px; }
+.tl li .x { opacity: 0; }
+.tl li:hover .x { opacity: 1; }
+
+/* ---------- formularios */
+.form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 16px; }
+.form label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-2); font-weight: 500; }
+.form label.full { grid-column: 1 / -1; }
+.form .req::after { content: " *"; color: var(--crit); }
+.actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px; }
+.tabs button { all: unset; cursor: pointer; padding: 9px 14px; border-bottom: 2px solid transparent; color: var(--ink-2); font-weight: 500; }
+.tabs button.on { color: var(--ink); border-color: var(--accent); }
+.drop { display: block; border: 2px dashed var(--line-2); border-radius: var(--r); padding: 34px; text-align: center; color: var(--ink-2); cursor: pointer; transition: .15s; }
+.drop:hover, .drop.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+#toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 8px; z-index: 60; display: none; font-weight: 500; box-shadow: var(--shadow); max-width: 80vw; }
+#toast.err { background: var(--crit); color: #fff; }
+.spin { width: 16px; height: 16px; border: 2px solid var(--line-2); border-top-color: var(--accent); border-radius: 50%; animation: s 0.8s linear infinite; display: inline-block; }
+@keyframes s { to { transform: rotate(360deg); } }
+@media (max-width: 860px) {
+  nav { width: 62px; padding: 14px 8px; } nav .brand div, nav button span, nav .foot { display: none; }
+  .wrap, .top { padding-left: 16px; padding-right: 16px; } .g-2 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<nav>
+  <div class="brand"><div class="brand-mark"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M3 7h13v10H3zM16 10h3l2 3v4h-5"/><circle cx="7" cy="18" r="1.6"/><circle cx="18" cy="18" r="1.6"/></svg></div><div>Control Logístico<small>Reembarques SAE · DEX</small></div></div>
+  <button data-v="tablero"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span>Tablero</span></button>
+  <button data-v="matriz"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M3 12h18M3 19h18M8 5v14"/></svg><span>Matriz operativa</span></button>
+  <button data-v="registrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg><span>Registrar</span></button>
+  <button data-v="datos"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12M7 10l5 5 5-5M4 21h16"/></svg><span>Importar / Exportar</span></button>
+  <button data-v="config"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Configuración</span></button>
+  <div class="spacer"></div>
+  <button id="theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><span>Tema claro / oscuro</span></button>
+  <div class="foot" id="clock"></div>
+</nav>
+<main id="main"></main>
+<div id="drawer"><div class="veil"></div><div class="panel" id="panel"></div></div>
+<div id="tip"></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = v => v == null ? "" : String(v).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const nf = (v, d = 0) => v == null || v === "" ? "—" : Number(v).toLocaleString("es-CO", {minimumFractionDigits: d, maximumFractionDigits: d});
+const pct = v => v == null ? "—" : (v * 100).toLocaleString("es-CO", {maximumFractionDigits: 1}) + " %";
+const horas = h => h == null ? "—" : h < 48 ? nf(h, 1) + " h" : nf(h / 24, 1) + " d";
+const SEM_TXT = {ROJO: "Rojo", AMBAR: "Ámbar", VERDE: "Verde", CERRADO: "Cerrado"};
+const sem = s => `<span class="sem ${esc(s)}">${SEM_TXT[s] || esc(s)}</span>`;
+const S = {meta: null, view: "tablero", filtros: {estado: "abiertos"}, rango: "todo", file: null};
+
+async function api(path, opt = {}) {
+  const r = await fetch(path, opt);
+  const ct = r.headers.get("content-type") || "";
+  const data = ct.includes("json") ? await r.json() : await r.blob();
+  if (!r.ok) throw new Error(data.error || r.statusText);
+  return data;
+}
+const post = (path, body) => api(path, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
+function toast(msg, err = false) {
+  const t = $("#toast"); t.textContent = msg; t.className = err ? "err" : ""; t.style.display = "block";
+  clearTimeout(t._h); t._h = setTimeout(() => t.style.display = "none", err ? 5000 : 2600);
+}
+const ahoraLocal = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); };
+const opts = (arr, sel, blank = true) => (blank ? '<option value="">—</option>' : "") +
+  arr.map(o => { const [v, t] = Array.isArray(o) ? o : [o, o]; return `<option value="${esc(v)}" ${v == sel ? "selected" : ""}>${esc(t)}</option>`; }).join("");
+const hitoNombre = id => (S.meta.hitos.find(h => h.id === id) || {}).fase || id;
+const personaNombre = id => (S.meta.personas.find(p => p.id === id) || {}).nombre || id || "—";
+
+// ---------- tooltip
+const tip = $("#tip");
+document.addEventListener("mousemove", e => {
+  const t = e.target.closest("[data-tip]");
+  if (!t) { tip.style.display = "none"; return; }
+  tip.innerHTML = t.dataset.tip; tip.style.display = "block";
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - w - 8) + "px";
+  tip.style.top = (e.clientY + h + 20 > innerHeight ? e.clientY - h - 12 : e.clientY + 14) + "px";
+});
+
+// ---------- navegación
+$$("nav button[data-v]").forEach(b => b.onclick = () => ir(b.dataset.v));
+function ir(v) {
+  S.view = v; $$("nav button[data-v]").forEach(b => b.classList.toggle("on", b.dataset.v === v));
+  ({tablero: vTablero, matriz: vMatriz, registrar: vRegistrar, datos: vDatos, config: vConfig})[v]();
+}
+$("#theme").onclick = () => {
+  const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  r.dataset.theme = dark ? "light" : "dark"; try { localStorage.setItem("tema", r.dataset.theme); } catch (e) {}
+};
+try { const t = localStorage.getItem("tema"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+setInterval(() => fetch("/api/ping").catch(() => {}), 10000); fetch("/api/ping").catch(() => {});
+const tick = () => $("#clock").textContent = new Date().toLocaleString("es-CO", {dateStyle: "medium", timeStyle: "short"});
+tick(); setInterval(tick, 30000);
+
+function cabecera(title, sub, right = "") {
+  return `<div class="top"><h1>${title}<span class="sub">${sub}</span></h1>${right}</div>`;
+}
+
+// ---------- gráficos (SVG simple, una serie, tooltip por marca)
+const rr = bw => Math.min(4, bw / 2);
+function barsH(items, {color = "var(--seq)", fmt = v => nf(v), labelW = 170, extra = () => ""} = {}) {
+  if (!items.length) return '<div class="empty">Sin datos</div>';
+  const max = Math.max(...items.map(i => i.v), 1), rowH = 26, W = 600, w = W - labelW - 50;
+  const rows = items.map((it, k) => {
+    const y = k * rowH, bw = Math.max(2, it.v / max * w);
+    const tipTxt = `<b>${esc(it.label)}</b>${fmt(it.v)}${extra(it)}`;
+    return `<g data-tip="${esc(tipTxt)}"><rect class="hit" x="0" y="${y}" width="${W}" height="${rowH}"/>
+      <text class="lbl-ink" x="${labelW - 8}" y="${y + 17}" text-anchor="end">${esc(it.label.length > 26 ? it.label.slice(0, 25) + "…" : it.label)}</text>
+      <path class="bar" fill="${it.color || color}" d="M${labelW},${y + 6} h${bw - rr(bw)} a${rr(bw)},${rr(bw)} 0 0 1 ${rr(bw)},${rr(bw)} v${14 - 2 * rr(bw)} a${rr(bw)},${rr(bw)} 0 0 1 -${rr(bw)},${rr(bw)} h-${bw - rr(bw)} z"/>
+      <text class="val-ink" x="${labelW + bw + 6}" y="${y + 17}">${fmt(it.v)}</text></g>`;
+  }).join("");
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${items.length * rowH}">${rows}</svg></div>`;
+}
+function barsV(items, {color = "var(--seq)", fmt = v => nf(v), max = null, ref = null, refLbl = ""} = {}) {
+  if (!items.length) return '<div class="empty">Sin datos</div>';
+  const W = 600, H = 190, pb = 22, pt = 12, n = items.length, gap = 2;
+  const mx = max ?? Math.max(...items.map(i => i.v || 0), 1);
+  const bw = Math.min(34, (W - 30) / n - gap * 2), step = (W - 30) / n;
+  const y = v => pt + (H - pt - pb) * (1 - v / mx);
+  let g = "";
+  [0, .5, 1].forEach(f => { const yy = y(mx * f); g += `<line class="grid-l" x1="30" x2="${W}" y1="${yy}" y2="${yy}"/><text x="26" y="${yy + 4}" text-anchor="end">${fmt(mx * f)}</text>`; });
+  if (ref != null) g += `<line x1="30" x2="${W}" y1="${y(ref)}" y2="${y(ref)}" stroke="var(--ink-2)" stroke-dasharray="4 3"/><text x="${W}" y="${y(ref) - 4}" text-anchor="end" class="lbl-ink">${esc(refLbl)}</text>`;
+  items.forEach((it, k) => {
+    const x = 30 + k * step + (step - bw) / 2;
+    const tipTxt = `<b>${esc(it.label)}</b>${it.tip || fmt(it.v)}`;
+    if (it.v == null) { g += `<g data-tip="${esc(tipTxt)}"><rect class="hit" x="${30 + k * step}" y="${pt}" width="${step}" height="${H - pt}"/><text x="${x + bw / 2}" y="${H - pb - 4}" text-anchor="middle">s/d</text></g>`; }
+    else {
+      const yy = y(it.v), h = Math.max(1, H - pb - yy);
+      g += `<g data-tip="${esc(tipTxt)}"><rect class="hit" x="${30 + k * step}" y="${pt}" width="${step}" height="${H - pt}"/>
+        <path class="bar" fill="${color}" d="M${x},${H - pb} v-${Math.max(0, h - 4)} a4,4 0 0 1 4,-4 h${bw - 8} a4,4 0 0 1 4,4 v${Math.max(0, h - 4)} z"/></g>`;
+    }
+    if (n <= 12 || k % 2 === 0) g += `<text x="${x + bw / 2}" y="${H - 6}" text-anchor="middle">${esc(it.short || it.label)}</text>`;
+  });
+  g += `<line class="base-l" x1="30" x2="${W}" y1="${H - pb}" y2="${H - pb}"/>`;
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}">${g}</svg></div>`;
+}
+function stackFases(fases) {
+  if (!fases.length) return '<div class="empty">No hay files abiertos 🎉</div>';
+  const keys = [["ROJO", "var(--crit)"], ["AMBAR", "var(--warn)"], ["VERDE", "var(--good)"]];
+  const tot = f => keys.reduce((a, [k]) => a + (f[k] || 0), 0);
+  const max = Math.max(...fases.map(tot), 1), labelW = 200, W = 600, w = W - labelW - 40, rowH = 28;
+  const rows = fases.map((f, i) => {
+    let x = labelW, segs = "";
+    keys.forEach(([k, c]) => {
+      const n = f[k] || 0; if (!n) return;
+      const bw = Math.max(3, n / max * w);
+      segs += `<rect data-tip="${esc(`<b>${f.fase}</b>${SEM_TXT[k]}: ${n} file(s)`)}" x="${x}" y="${i * rowH + 6}" width="${bw - 2}" height="16" rx="3" fill="${c}"/>`;
+      x += bw;
+    });
+    return `<g style="cursor:pointer" onclick="S.filtros={estado:'abiertos',fase:'${esc(f.fase.slice(0, 3))}'};ir('matriz')"><text class="lbl-ink" x="${labelW - 8}" y="${i * rowH + 18}" text-anchor="end">${esc(f.fase)}</text>${segs}<text class="val-ink" x="${x + 6}" y="${i * rowH + 18}">${tot(f)}</text></g>`;
+  }).join("");
+  return `<div class="legend">${keys.map(([k, c]) => `<span><i style="background:${c}"></i>${SEM_TXT[k]}</span>`).join("")}</div><div class="chart"><svg viewBox="0 0 ${W} ${fases.length * rowH}">${rows}</svg></div>`;
+}
+
+// ---------- TABLERO
+const RANGOS = [["todo", "Todo"], ["30", "Últimos 30 días"], ["mes", "Este mes"], ["anio", "Este año"], ["anio_ant", "Año anterior"]];
+function rangoFechas(r) {
+  const d = new Date(), f = x => x.toISOString().slice(0, 10), y = d.getFullYear();
+  if (r === "30") return [f(new Date(Date.now() - 30 * 864e5)), f(d)];
+  if (r === "mes") return [`${f(d).slice(0, 7)}-01`, f(d)];
+  if (r === "anio") return [`${y}-01-01`, f(d)];
+  if (r === "anio_ant") return [`${y - 1}-01-01`, `${y - 1}-12-31`];
+  return ["", ""];
+}
+async function vTablero() {
+  const [desde, hasta] = rangoFechas(S.rango);
+  $("#main").innerHTML = cabecera("Tablero de control", "Estado de la operación y cumplimiento de ANS",
+    `<div class="seg">${RANGOS.map(([k, t]) => `<button class="${S.rango === k ? "on" : ""}" data-r="${k}">${t}</button>`).join("")}</div>`) +
+    `<div class="wrap"><span class="spin"></span></div>`;
+  $$(".seg button").forEach(b => b.onclick = () => { S.rango = b.dataset.r; vTablero(); });
+  const d = await api(`/api/tablero?desde=${desde}&hasta=${hasta}`), t = d.tiles;
+  if (S.meta.vacia) { $(".wrap").innerHTML = bienvenida(); return; }
+  const tile = (lbl, val, foot, onclick = "", color = "") => `<div class="card tile" ${onclick ? `style="cursor:pointer" onclick="${onclick}"` : ""}>
+      <div class="lbl">${color ? `<i class="dot-${color}"></i>` : ""}${lbl}</div><div class="val">${val}</div><div class="foot">${foot}</div></div>`;
+  const meses = d.meses.map(m => ({label: m.mes, short: m.mes.slice(2).replace("-", "/"), v: m.files, tip: `${m.files} files · ${m.saes} SAE`}));
+  const ans = d.meses.map(m => ({label: m.mes, short: m.mes.slice(2).replace("-", "/"), v: m.pct,
+    tip: m.pct == null ? `Sin SAE medibles${m.estimadas ? ` (${m.estimadas} con fecha estimada)` : ""}` : `${pct(m.pct)} cumple · ${m.cumple}/${m.medibles} SAE medibles${m.estimadas ? `<br>${m.estimadas} excluidas por fecha estimada` : ""}`}));
+  $(".wrap").innerHTML = `
+    ${t.estimadas ? `<div class="banner"><b>⚠</b><div><b>${nf(t.estimadas)} SAE tienen fecha calculada por fórmula</b> en el consolidado (recepción + 2 días + 2:40 h). No son tiempos reales, así que se excluyen del % de ANS. A partir de ahora, registre la hora real en la bitácora.</div></div>` : ""}
+    <div class="grid g-tiles">
+      ${tile("Files abiertos", nf(t.abiertos), `${nf(t.files)} files en el período`, "S.filtros={estado:'abiertos'};ir('matriz')")}
+      ${tile("En rojo", nf(t.rojo), `${nf(t.ambar)} en ámbar`, "S.filtros={estado:'abiertos',semaforo:'ROJO'};ir('matriz')", "ROJO")}
+      ${tile("ANS SAE", pct(t.pct_sae), `≤ ${nf(t.ans_sae_h)} h recepción → SAE`)}
+      ${tile("ANS elaboración", pct(t.pct_elab), `≤ ${nf(t.ans_elab_h)} h recepción → borrador`)}
+      ${tile("Mediana a SAE", horas(t.mediana_h_sae), "tiempo real medido")}
+      ${tile("SAE no conciliadas", nf(t.no_conciliadas), "peso o bultos ≠ manifiesto", "", t.no_conciliadas ? "ROJO" : "VERDE")}
+      ${tile("Incumplimientos sin causal", nf(t.sin_causal), "requieren causa raíz")}
+      ${tile("Valor FOB (US$)", nf(t.fob_usd / 1e6, t.fob_usd >= 1e8 ? 0 : 1) + " M", `${nf(t.saes)} SAE`)}
+    </div>
+    <div class="grid g-2" style="margin-top:16px">
+      <div class="card"><h3>Files abiertos por fase</h3><p class="hint">Haga clic en una fase para ver sus files</p>${stackFases(d.fases)}</div>
+      <div class="card"><h3>Cumplimiento ANS SAE por mes</h3><p class="hint">% de SAE autorizadas en ≤ ${nf(t.ans_sae_h)} h desde la recepción (solo fechas reales)</p>${barsV(ans, {max: 1, fmt: v => Math.round(v * 100) + "%", ref: 0.9, refLbl: "meta 90 %"})}</div>
+      <div class="card"><h3>Files recibidos por mes</h3><p class="hint">Volumen operativo según la fecha de recepción de la remisión</p>${barsV(meses)}</div>
+      <div class="card"><h3>Causales de incumplimiento</h3><p class="hint">Pareto por código · responsable</p>${barsH(d.causales.map(c => ({label: `${c.id} · ${c.resp}`, v: c.n, desc: c.desc})), {extra: it => `<br>${esc(it.desc)}`, color: "var(--seq)"})}</div>
+      <div class="card"><h3>Files por país destino</h3><p class="hint">Período seleccionado</p>${barsH(d.paises.map(p => ({label: p.nombre, v: p.n})))}</div>
+      <div class="card"><h3>SAE por digitador</h3><p class="hint">Productividad del período</p>${barsH(d.digitadores.map(p => ({label: p.nombre, v: p.n})))}</div>
+    </div>`;
+}
+function bienvenida() {
+  return `<div class="card" style="max-width:720px;margin:30px auto;padding:28px">
+    <h2 style="margin-top:0">Bienvenido 👋</h2>
+    <p>La base de datos está vacía. Puede empezar de tres formas:</p>
+    <div class="grid g-3" style="margin-top:14px">
+      <div class="card"><h3>1 · Importar el consolidado</h3><p class="hint">Cargue su CONSOLIDADO_GENERAL.xlsx: se limpia y se normaliza solo.</p><button class="btn pri" onclick="ir('datos')">Importar Excel</button></div>
+      <div class="card"><h3>2 · Ver un ejemplo</h3><p class="hint">Carga datos ficticios para recorrer la app.</p><button class="btn" onclick="cargarDemo()">Cargar ejemplo</button></div>
+      <div class="card"><h3>3 · Empezar en blanco</h3><p class="hint">Cree el primer reembarque y su remisión.</p><button class="btn" onclick="ir('registrar')">Registrar</button></div>
+    </div></div>`;
+}
+async function cargarDemo() { await post("/api/demo", {}); await recargarMeta(); toast("Datos de ejemplo cargados"); ir("tablero"); }
+async function recargarMeta() { S.meta = await api("/api/meta"); }
+
+// ---------- MATRIZ
+async function vMatriz() {
+  const f = S.filtros, m = S.meta;
+  const fases = [...new Set(m.hitos.map(h => h.fase.slice(0, 3)))].map(k => [k, m.hitos.find(h => h.fase.startsWith(k)).fase.replace(/ (solicitada|respondida|liberada)$/, "")]);
+  $("#main").innerHTML = cabecera("Matriz operativa", "Un file por fila · ordenado por urgencia",
+    `<button class="btn" onclick="location.href='/api/exportar'">⤓ Exportar Excel</button><button class="btn pri" onclick="ir('registrar')">+ Registrar</button>`) +
+    `<div class="wrap"><div class="filters">
+      <input type="search" id="fq" placeholder="Buscar file, remisión, reembarque, contenedor…" value="${esc(f.q || "")}">
+      <select id="ffase"><option value="">Todas las fases</option>${opts(fases, f.fase, false)}</select>
+      <select id="fsem"><option value="">Todos los semáforos</option>${opts(Object.entries(SEM_TXT), f.semaforo, false)}</select>
+      <select id="fpais"><option value="">Todos los países</option>${opts(m.paises.map(p => [p.id, p.nombre]), f.pais, false)}</select>
+      <select id="fdig"><option value="">Todos los digitadores</option>${opts(m.personas.map(p => [p.id, p.nombre]), f.digitador, false)}</select>
+      <div class="seg"><button data-e="abiertos" class="${f.estado !== "todos" ? "on" : ""}">Abiertos</button><button data-e="todos" class="${f.estado === "todos" ? "on" : ""}">Todos</button></div>
+      <span id="cnt" class="pill"></span>
+    </div><div id="tbl"><span class="spin"></span></div></div>`;
+  const leer = () => { S.filtros = {q: $("#fq").value, fase: $("#ffase").value, semaforo: $("#fsem").value, pais: $("#fpais").value, digitador: $("#fdig").value, estado: S.filtros.estado}; cargar(); };
+  let h; $("#fq").oninput = () => { clearTimeout(h); h = setTimeout(leer, 250); };
+  ["#ffase", "#fsem", "#fpais", "#fdig"].forEach(s => $(s).onchange = leer);
+  $$(".seg button[data-e]").forEach(b => b.onclick = () => { S.filtros.estado = b.dataset.e; $$(".seg button[data-e]").forEach(x => x.classList.toggle("on", x === b)); leer(); });
+  async function cargar() {
+    const qs = new URLSearchParams(Object.entries(S.filtros).filter(([, v]) => v)).toString();
+    const d = await api("/api/remisiones?" + qs);
+    if (!$("#cnt") || S.view !== "matriz") return;
+    $("#cnt").textContent = d.total > d.filas.length ? `${nf(d.filas.length)} de ${nf(d.total)}` : `${nf(d.total)} files`;
+    if (!d.filas.length) { $("#tbl").innerHTML = `<div class="card empty">No hay files con estos filtros.</div>`; return; }
+    $("#tbl").innerHTML = `<div class="tbl-wrap"><table><thead><tr>
+      <th>Semáforo</th><th>File / remisión</th><th>Reembarque</th><th>Destino</th><th>Fase actual</th><th>Avance</th>
+      <th>Le toca a</th><th>Próxima acción</th><th class="num">En fase</th><th class="num">SAE</th><th class="num">Peso bruto kg</th><th>Digitador</th></tr></thead><tbody>
+      ${d.filas.map(r => `<tr data-f="${esc(r.file)}">
+        <td>${sem(r.semaforo)}${r.no_conciliadas ? ' <span class="pill bad" title="SAE no conciliada">≠ manif.</span>' : ""}${r.bloqueo ? ' <span class="pill bad">bloqueado</span>' : ""}</td>
+        <td><div class="main">${esc(r.file)}</div><div class="sub">${esc(r.remision || "")}</div></td>
+        <td><div>${esc(r.reembarque || "—")}</div><div class="sub">${esc([r.terminal, r.naviera].filter(Boolean).join(" · "))}</div></td>
+        <td><div>${esc(r.pais || "")}</div><div class="sub">${esc((r.destinatario || "").slice(0, 28))}</div></td>
+        <td>${esc(r.fase)}</td>
+        <td>${progreso(r.paso)}</td>
+        <td>${esc(r.dueno || "")}</td>
+        <td>${esc(r.accion || "")}</td>
+        <td class="num" ${r.ans ? `title="ANS de la fase: ${r.ans} h"` : ""}>${horas(r.horas)}</td>
+        <td class="num">${nf(r.saes)}</td>
+        <td class="num">${nf(r.peso_bruto, 0)}</td>
+        <td>${esc(r.digitador_nombre || "—")}</td></tr>`).join("")}</tbody></table></div>`;
+    $$("#tbl tbody tr").forEach(tr => tr.onclick = () => abrir(tr.dataset.f));
+  }
+  cargar();
+}
+const progreso = p => `<span class="prog" title="Paso ${p || 0} de 10">${Array.from({length: 10}, (_, i) => `<i class="${i + 1 < p ? "d" : i + 1 === p ? "c" : ""}"></i>`).join("")}</span>`;
+
+// ---------- DETALLE
+async function abrir(file) {
+  S.file = file;
+  const r = await api("/api/remision?file=" + encodeURIComponent(file)), m = S.meta, rb = r.reembarque_det || {};
+  const sig = m.hitos.find(h => h.orden > (r.orden ?? -1) && h.id !== "H045" && h.id !== "H046" && h.id !== "H010" && h.id !== "H015");
+  $("#panel").innerHTML = `
+    <div class="ph">
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="flex:1"><h2>${esc(r.file)} ${sem(r.semaforo)}</h2>
+          <div class="meta">${esc(r.remision || "")} · ${esc(r.destinatario || "")} (${esc(r.pais || "?")}) · Reembarque <b>${esc(r.reembarque || "—")}</b></div></div>
+        <button class="btn" onclick="cerrarDrawer()">✕</button>
+      </div>
+      <div class="stepper">${m.pasos.map((p, i) => `<div class="${i + 1 < r.paso ? "d" : i + 1 === r.paso ? "c" : ""}">${p}</div>`).join("")}</div>
+    </div>
+    <div class="pb">
+      <div class="grid g-tiles">
+        <div class="card tile"><div class="lbl">Fase actual</div><div style="font-weight:600;margin-top:4px">${esc(r.fase)}</div><div class="foot">desde ${esc(r.ultimo || "—")}</div></div>
+        <div class="card tile"><div class="lbl">Tiempo en la fase</div><div class="val">${horas(r.horas)}</div><div class="foot">ANS fase: ${r.ans ? r.ans + " h" : "—"}</div></div>
+        <div class="card tile"><div class="lbl">Le toca a</div><div style="font-weight:600;margin-top:4px">${esc(r.dueno || "—")}</div><div class="foot">${esc(r.accion || "")}</div></div>
+      </div>
+      <div class="card"><h3 style="margin-bottom:10px">Registrar hito</h3>
+        <div class="form" id="fh">
+          <label><span class="req">Hito</span><select name="hito">${opts(m.hitos.map(h => [h.id, h.fase]), sig ? sig.id : "", false)}</select></label>
+          <label><span class="req">Fecha-hora real</span><input type="datetime-local" name="fecha" value="${ahoraLocal()}"></label>
+          <label>SAE (si aplica)<select name="sae">${opts(r.saes_det.map(s => s.id), "")}</select></label>
+          <label>Responsable<select name="responsable">${opts([...m.personas.map(p => [p.id, p.nombre]), "CDLI", "TERMINAL", "NAVIERA", "DIAN"], "")}</select></label>
+          <label>Causal (si hubo demora)<select name="causal">${opts(m.causales.map(c => [c.id, c.id + " · " + c.desc]), "")}</select></label>
+          <label>Fuente<select name="fuente">${opts(m.listas.fuente, "MANUAL", false)}</select></label>
+          <label class="full">Nota<input name="nota" placeholder="Opcional"></label>
+        </div>
+        <div class="actions"><label style="display:flex;gap:6px;align-items:center;margin-right:auto;font-size:13px"><input type="checkbox" id="bloq" ${r.bloqueo ? "checked" : ""}> File bloqueado</label>
+          <button class="btn pri" id="gh">Guardar hito</button></div>
+      </div>
+      <div class="card"><h3>SAE del file</h3><p class="hint">Conciliación contra el manifiesto y ANS medido con tiempos reales</p>
+        <div class="tbl-wrap" style="max-height:none"><table><thead><tr><th>SAE</th><th class="num">Bultos</th><th class="num">Peso bruto</th><th class="num">Manifestado</th><th>Concil.</th><th>Canal DIAN</th><th>DEX</th><th class="num">Elab.</th><th class="num">A SAE</th><th>ANS</th><th>Causal</th></tr></thead><tbody>
+        ${r.saes_det.map(s => `<tr style="cursor:default"><td class="main">${esc(s.id)}</td><td class="num">${nf(s.bultos)}</td><td class="num">${nf(s.peso_bruto, 2)}</td>
+          <td class="num">${s.peso_manif == null ? "—" : nf(s.peso_manif, 2) + (s.dif_peso ? ` <span class="sub">(${s.dif_peso > 0 ? "+" : ""}${nf(s.dif_peso, 2)})</span>` : "")}</td>
+          <td>${s.conciliado == null ? '<span class="pill">pdte</span>' : s.conciliado ? '<span class="pill ok">✓ sí</span>' : '<span class="pill bad">✗ no</span>'}</td>
+          <td>${esc((s.canal || "—").replace(/_/g, " ").toLowerCase())}</td>
+          <td>${esc(s.dex || (s.dex_tipo === "MANUAL" ? "manual" : "—"))}</td>
+          <td class="num">${horas(s.h_elab)}</td><td class="num">${horas(s.h_total)}</td>
+          <td>${s.ans_sae === "CUMPLE" ? '<span class="pill ok">cumple</span>' : s.ans_sae === "NO_CUMPLE" ? '<span class="pill bad">no cumple</span>' : s.ans_sae === "ESTIMADO" ? '<span class="pill est" title="Fecha calculada por fórmula en el consolidado">estimado</span>' : '<span class="pill">pdte</span>'}</td>
+          <td>${s.causal ? `<span class="pill">${esc(s.causal)}</span>` : s.falta_causal ? '<span class="pill bad">falta</span>' : ""}</td></tr>`).join("") || `<tr><td colspan="11" class="empty">Sin SAE · <a href="#" onclick="nuevaSae('${esc(r.file)}');return false">agregar SAE</a></td></tr>`}
+        </tbody></table></div>
+        <div class="actions"><button class="btn sm" onclick="nuevaSae('${esc(r.file)}')">+ Agregar / editar SAE</button></div>
+      </div>
+      <div class="card"><h3>Bitácora de hitos</h3><p class="hint">Fuente única de fechas · los puntos ámbar son fechas estimadas</p>
+        <ul class="tl">${r.eventos.map(e => `<li class="${e.estimado ? "est" : ""}"><div class="when">${esc(e.fecha)}</div><div class="dot"></div>
+          <div class="what"><b>${esc(e.fase)}</b><span>${esc([e.sae ? "SAE " + e.sae : e.file ? "" : "Reembarque " + e.reembarque, personaNombre(e.responsable) !== "—" ? personaNombre(e.responsable) : "", e.fuente, e.causal, e.nota].filter(Boolean).join(" · "))}</span></div>
+          <button class="btn sm dan x" onclick="borrarEv(${e.id})" title="Eliminar hito">✕</button></li>`).join("") || '<li class="empty">Sin hitos todavía</li>'}</ul></div>
+      <div class="card"><h3>Datos</h3><div class="kv" style="margin-top:10px">
+        ${[["Packing list", r.packing_list], ["Digitador", r.digitador_nombre], ["Revisión", r.revision], ["Gestor documental", r.gestor], ["Recepción", r.recepcion],
+           ["Terminal", rb.terminal], ["Agente de carga", rb.agente], ["Naviera", rb.naviera], ["Puerto destino", rb.pod], ["Contenedor", rb.contenedor], ["BL", rb.bl], ["Valor FOB US$", nf(r.fob_usd, 2)]]
+          .map(([k, v]) => `<div><span>${k}</span><b>${esc(v ?? "—")}</b></div>`).join("")}</div>
+        ${r.observacion ? `<p style="margin:14px 0 0;color:var(--ink-2)"><b>Observaciones:</b> ${esc(r.observacion)}</p>` : ""}
+        <div class="actions"><button class="btn sm" onclick="editarRemision('${esc(r.file)}')">Editar datos</button></div></div>
+    </div>`;
+  $("#drawer").classList.add("on");
+  $("#gh").onclick = async () => {
+    const d = Object.fromEntries($$("#fh [name]").map(i => [i.name, i.value]));
+    d.file = r.file; d.reembarque = r.reembarque;
+    try {
+      if ($("#bloq").checked !== !!r.bloqueo) await post("/api/remision", {...r, bloqueo: $("#bloq").checked ? 1 : 0, bloqueo_causal: d.causal || r.bloqueo_causal});
+      await post("/api/evento", d); toast("Hito registrado"); abrir(r.file); refrescarVista();
+    } catch (e) { toast(e.message, true); }
+  };
+  $("#bloq").onchange = async () => { await post("/api/remision", {...r, bloqueo: $("#bloq").checked ? 1 : 0}); toast($("#bloq").checked ? "File bloqueado" : "Bloqueo retirado"); abrir(r.file); refrescarVista(); };
+}
+function cerrarDrawer() { $("#drawer").classList.remove("on"); S.file = null; }
+$("#drawer .veil").onclick = cerrarDrawer;
+document.addEventListener("keydown", e => { if (e.key === "Escape") cerrarDrawer(); });
+async function borrarEv(id) { if (!confirm("¿Eliminar este hito?")) return; await api("/api/evento?id=" + id, {method: "DELETE"}); toast("Hito eliminado"); abrir(S.file); refrescarVista(); }
+function refrescarVista() { if (S.view === "matriz") { const keep = S.file; vMatriz().then(() => S.file = keep); } else if (S.view === "tablero") vTablero(); }
+async function editarRemision(file) { cerrarDrawer(); const r = await api("/api/remision?file=" + encodeURIComponent(file)); S.pre = {tab: "remision", data: r}; ir("registrar"); }
+function nuevaSae(file) { cerrarDrawer(); S.pre = {tab: "sae", data: {file}}; ir("registrar"); }
+
+// ---------- REGISTRAR
+const FORMS = {
+  hito: {t: "Hito", api: "/api/evento", ok: "Hito registrado", campos: m => [
+    ["hito", "Hito", "sel", m.hitos.map(h => [h.id, h.fase]), true], ["fecha", "Fecha-hora real", "dt", null, true],
+    ["file", "File aduana", "txt", null, false, "Para hitos del file o de una SAE"], ["sae", "SAE", "txt", null, false, "13 dígitos"],
+    ["reembarque", "Reembarque", "sel", m.reembarques, false, "Para hitos de todo el reembarque (autoriza embarque, zarpe)"],
+    ["responsable", "Responsable", "sel", [...m.personas.map(p => [p.id, p.nombre]), "CDLI", "TERMINAL", "NAVIERA", "DIAN"]],
+    ["causal", "Causal", "sel", m.causales.map(c => [c.id, c.id + " · " + c.desc])], ["fuente", "Fuente", "sel", m.listas.fuente],
+    ["nota", "Nota", "txt", null, false, "", true]]},
+  reembarque: {t: "Reembarque", api: "/api/reembarque", ok: "Reembarque guardado", campos: m => [
+    ["id", "ID reembarque", "txt", null, true, "Ej. BOOSTERIII-406"], ["proyecto", "Proyecto", "sel", m.listas.proyecto], ["modo", "Modo", "sel", m.listas.modo],
+    ["agente", "Agente de carga", "sel", m.transportistas.map(t => [t.id, t.nombre])], ["naviera", "Naviera / aerolínea", "sel", m.transportistas.map(t => [t.id, t.nombre])],
+    ["booking", "Booking"], ["terminal", "Terminal", "sel", m.listas.terminal], ["pod", "Puerto destino (UN/LOCODE)", "txt", null, false, "Ej. CLVAP"],
+    ["contenedor", "Contenedor (ISO 6346)", "txt", null, false, "4 letras + 7 dígitos"], ["bl", "BL"], ["buque", "Buque / viaje"], ["etd", "ETD", "date"]]},
+  remision: {t: "Remisión / file", api: "/api/remision", ok: "Remisión guardada", campos: m => [
+    ["file", "File aduana", "txt", null, true, "NIT-0223-NNN"], ["remision", "N.º remisión", "txt", null, false, "Ej. BOOST-412.1-CL"],
+    ["reembarque", "Reembarque", "sel", m.reembarques, true], ["pais", "País destino", "sel", m.paises.map(p => [p.id, p.nombre])],
+    ["destinatario", "Destinatario"], ["packing_list", "Packing list"], ["digitador", "Digitador", "sel", m.personas.map(p => [p.id, p.nombre])],
+    ["revision", "Estado de revisión", "sel", m.listas.revision], ["gestor", "Gestor documental", "sel", m.listas.gestor],
+    ["observacion", "Observaciones", "txt", null, false, "", true]]},
+  sae: {t: "SAE", api: "/api/sae", ok: "SAE guardada", campos: m => [
+    ["id", "N.º SAE", "txt", null, true, "13 dígitos"], ["file", "File aduana", "txt", null, true], ["cantidad", "Cantidad (und)", "num"], ["fob_usd", "Valor FOB US$", "num"],
+    ["peso_neto", "Peso neto kg", "num"], ["peso_bruto", "Peso bruto kg", "num"], ["bultos", "Bultos", "num"],
+    ["peso_manif", "Peso bruto manifestado kg", "num"], ["bultos_manif", "Bultos manifestados", "num"], ["model_codes", "Cant. model codes", "num"],
+    ["partidas", "Cant. partidas arancelarias", "num"], ["canal", "Canal DIAN", "sel", m.listas.canal], ["dex", "N.º DEX", "txt", null, false, "13 dígitos"],
+    ["dex_tipo", "Tipo DEX", "sel", m.listas.dex_tipo], ["sae_reemplazada", "SAE que reemplaza"], ["causal", "Causal", "sel", m.causales.map(c => [c.id, c.id + " · " + c.desc])]]},
+};
+function vRegistrar() {
+  const pre = S.pre || {}; S.pre = null;
+  let tab = pre.tab || "hito";
+  $("#main").innerHTML = cabecera("Registrar", "Capture solo lo que pasó, con su fecha-hora real: el estado y los KPI se calculan solos") +
+    `<div class="wrap"><div class="tabs">${Object.entries(FORMS).map(([k, f]) => `<button data-t="${k}">${f.t}</button>`).join("")}</div><div class="card" id="frm"></div>
+     <div class="card" style="margin-top:16px"><h3>Nuevo digitador o responsable</h3><div class="form" style="margin-top:10px"><label>Nombre<input id="pn"></label><label>Rol<select id="pr">${opts(["DIGITADOR", "RESPONSABLE_DEX", "REVISOR"], "DIGITADOR", false)}</select></label></div>
+     <div class="actions"><button class="btn" id="pg">Agregar persona</button></div></div></div>`;
+  const pintar = (data = {}) => {
+    $$(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.t === tab));
+    const F = FORMS[tab];
+    $("#frm").innerHTML = `<div class="form">${F.campos(S.meta).map(([n, l, tp = "txt", op, req, ph = "", full]) => {
+      const v = data[n] ?? (tp === "dt" ? ahoraLocal() : "");
+      const inp = tp === "sel" ? `<select name="${n}">${opts(op, v)}</select>` :
+        `<input name="${n}" type="${{dt: "datetime-local", date: "date", num: "number"}[tp] || "text"}" ${tp === "num" ? 'step="any" min="0"' : ""} value="${esc(tp === "dt" ? String(v).replace(" ", "T") : v)}" placeholder="${esc(ph)}">`;
+      return `<label class="${full ? "full" : ""}"><span class="${req ? "req" : ""}">${l}</span>${inp}</label>`;
+    }).join("")}</div><div class="actions"><button class="btn" id="limp">Limpiar</button><button class="btn pri" id="guar">Guardar ${F.t.toLowerCase()}</button></div>`;
+    $("#limp").onclick = () => pintar();
+    $("#guar").onclick = async () => {
+      const d = Object.fromEntries($$("#frm [name]").map(i => [i.name, i.type === "number" ? (i.value === "" ? null : Number(i.value)) : i.value]));
+      if (data.bloqueo != null && tab === "remision") { d.bloqueo = data.bloqueo; d.bloqueo_causal = data.bloqueo_causal; d.apoyo = data.apoyo; }
+      try { await post(F.api, d); toast(F.ok); await recargarMeta(); pintar(tab === "hito" ? {} : {}); }
+      catch (e) { toast(e.message, true); }
+    };
+  };
+  $$(".tabs button").forEach(b => b.onclick = () => { tab = b.dataset.t; pintar(); });
+  pintar(pre.data || {});
+  $("#pg").onclick = async () => { if (!$("#pn").value.trim()) return; await post("/api/persona", {nombre: $("#pn").value, rol: $("#pr").value}); await recargarMeta(); $("#pn").value = ""; toast("Persona agregada"); };
+}
+
+// ---------- IMPORTAR / EXPORTAR
+function vDatos() {
+  $("#main").innerHTML = cabecera("Importar / Exportar", "Migre el consolidado histórico y descargue la matriz en Excel") + `<div class="wrap grid g-2">
+    <div class="card"><h3>Importar CONSOLIDADO_GENERAL.xlsx</h3><p class="hint">Lee la hoja DATA, unifica los nombres escritos de distintas formas, convierte las fechas, separa los estados escritos en columnas de fecha y marca las fechas calculadas por fórmula. Se puede volver a importar: las SAE se actualizan, no se duplican.</p>
+      <label class="drop" id="drop"><input type="file" id="fx" accept=".xlsx,.xlsm" hidden><div style="font-size:26px">📥</div><b>Arrastre el Excel aquí</b><br><span class="hint">o haga clic para buscarlo</span></label>
+      <div id="rep" style="margin-top:14px"></div></div>
+    <div class="grid" style="align-content:start">
+      <div class="card"><h3>Exportar a Excel</h3><p class="hint">Hojas Matriz (con fase y semáforo), SAE (con KPI) y Eventos: listas para tablas dinámicas o Power BI.</p><button class="btn pri" onclick="location.href='/api/exportar'">⤓ Descargar Excel</button></div>
+      <div class="card"><h3>Datos de ejemplo</h3><p class="hint">Agrega 6 files ficticios en distintas fases para practicar.</p><button class="btn" onclick="cargarDemo()">Cargar ejemplo</button></div>
+      <div class="card"><h3>Vaciar base de datos</h3><p class="hint">Borra todos los registros. No se puede deshacer.</p><button class="btn dan" id="vac">Vaciar todo</button></div>
+    </div></div>`;
+  const drop = $("#drop"), fx = $("#fx");
+  ["dragover", "dragenter"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+  ["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, () => drop.classList.remove("over")));
+  drop.addEventListener("drop", e => { e.preventDefault(); if (e.dataTransfer.files[0]) subir(e.dataTransfer.files[0]); });
+  fx.onchange = () => fx.files[0] && subir(fx.files[0]);
+  $("#vac").onclick = async () => { if (!confirm("¿Borrar TODOS los datos de la app?")) return; await post("/api/vaciar", {}); await recargarMeta(); toast("Base vaciada"); };
+}
+async function subir(file) {
+  $("#rep").innerHTML = `<div style="display:flex;gap:10px;align-items:center"><span class="spin"></span> Importando ${esc(file.name)}… puede tardar unos segundos.</div>`;
+  try {
+    const r = await api("/api/importar", {method: "POST", body: await file.arrayBuffer()});
+    await recargarMeta();
+    const li = (k, v) => `<div><span>${k}</span><b>${v}</b></div>`;
+    $("#rep").innerHTML = `<div class="banner info"><b>✓</b><div>Importación completa desde la hoja <b>${esc(r.hoja)}</b>.</div></div>
+      <div class="kv">${li("Filas leídas", nf(r.filas_leidas))}${li("SAE", nf(r.saes))}${li("Files", nf(r.files))}${li("Reembarques", nf(r.reembarques))}${li("Hitos creados", nf(r.eventos))}
+      ${li("SAE con fecha estimada", nf(r.fechas_estimadas))}${li("Fechas de texto convertidas", nf(r.fechas_texto_convertidas))}${li("SAE no conciliadas", nf(r.no_conciliadas))}${li("Filas sin SAE (omitidas)", nf(r.sin_sae))}${li("SAE duplicadas", nf(r.duplicadas))}</div>
+      <h3 style="margin:16px 0 6px">Nombres unificados (espacios, tildes y variantes)</h3><div class="kv">${Object.entries(r.alias_unificados).map(([k, v]) => li(k, nf(v))).join("")}</div>
+      ${r.texto_en_fecha.length ? `<h3 style="margin:16px 0 6px">Estados escritos en columnas de fecha → convertidos a canal DIAN o tipo de DEX</h3><ul style="margin:0;padding-left:18px">${r.texto_en_fecha.map(t => `<li>${esc(t.valor)} <span class="pill">${t.n}</span></li>`).join("")}</ul>` : ""}
+      ${r.transportista_desconocido.length ? `<h3 style="margin:16px 0 6px">Transportistas no reconocidos (revisar)</h3><ul style="margin:0;padding-left:18px">${r.transportista_desconocido.map(t => `<li>${esc(t.valor)} <span class="pill">${t.n}</span></li>`).join("")}</ul>` : ""}
+      <div class="actions"><button class="btn pri" onclick="ir('tablero')">Ver tablero →</button></div>`;
+  } catch (e) { $("#rep").innerHTML = `<div class="banner"><b>✗</b><div>${esc(e.message)}</div></div>`; }
+}
+
+// ---------- CONFIGURACIÓN
+function vConfig() {
+  const m = S.meta;
+  $("#main").innerHTML = cabecera("Configuración", "Umbrales de ANS y catálogos") + `<div class="wrap grid g-2">
+    <div class="card"><h3>Parámetros de ANS</h3><p class="hint">Se aplican de inmediato a semáforos y KPI</p>
+      <div class="form" id="fp">${m.params.map(p => `<label>${esc(p.desc)}<input type="number" step="any" name="${p.clave}" value="${p.valor}"></label>`).join("")}</div>
+      <div class="actions"><button class="btn pri" id="gp">Guardar parámetros</button></div></div>
+    <div class="card"><h3>Fases y ANS por fase</h3><p class="hint">Máquina de estados: la fase es el último hito cumplido</p>
+      <div class="tbl-wrap" style="max-height:420px"><table><thead><tr><th>Hito</th><th>Fase</th><th>Le toca a</th><th>Próxima acción</th><th class="num">ANS h</th></tr></thead><tbody>
+      ${m.hitos.map(h => `<tr style="cursor:default"><td>${h.id}</td><td>${esc(h.fase)}</td><td>${esc(h.dueno)}</td><td>${esc(h.accion)}</td><td class="num">${h.ans || "—"}</td></tr>`).join("")}</tbody></table></div></div>
+    <div class="card"><h3>Causales</h3><div class="tbl-wrap" style="max-height:420px"><table><thead><tr><th>Código</th><th>Descripción</th><th>Responsable</th></tr></thead><tbody>
+      ${m.causales.map(c => `<tr style="cursor:default"><td>${c.id}</td><td>${esc(c.desc)}</td><td>${esc(c.resp)}</td></tr>`).join("")}</tbody></table></div></div>
+    <div class="card"><h3>Personas</h3><div class="tbl-wrap" style="max-height:420px"><table><thead><tr><th>ID</th><th>Nombre</th><th>Rol</th></tr></thead><tbody>
+      ${m.personas.map(p => `<tr style="cursor:default"><td>${p.id}</td><td>${esc(p.nombre)}</td><td>${esc(p.rol)}</td></tr>`).join("") || '<tr><td colspan="3" class="empty">Sin personas</td></tr>'}</tbody></table></div></div>
+  </div>`;
+  $("#gp").onclick = async () => { await post("/api/parametros", Object.fromEntries($$("#fp input").map(i => [i.name, i.value]))); await recargarMeta(); toast("Parámetros guardados"); };
+}
+
+(async () => { await recargarMeta(); ir("tablero"); })().catch(e => { $("#main").innerHTML = `<div class="wrap"><div class="banner">${esc(e.message)}</div></div>`; });
+</script>
+</body>
+</html>
